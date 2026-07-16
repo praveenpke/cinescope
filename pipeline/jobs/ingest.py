@@ -14,7 +14,6 @@ Steps (each checkpointed, so re-runs skip completed work):
 
 from __future__ import annotations
 
-import json
 import logging
 import zipfile
 from dataclasses import dataclass
@@ -22,7 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pipeline import config, download, sampling
+from pipeline import checkpoints, config, download, sampling
 from pipeline.spark_utils import get_spark
 
 if TYPE_CHECKING:
@@ -54,25 +53,6 @@ class TableResult:
     table: str
     rows: int
     skipped: bool
-
-
-def _marker_path(staging: Path, table: str) -> Path:
-    return staging / "_done" / f"{table}.json"
-
-
-def _read_marker(staging: Path, table: str) -> int | None:
-    marker = _marker_path(staging, table)
-    if not marker.exists():
-        return None
-    return int(json.loads(marker.read_text())["rows"])
-
-
-def _write_marker(staging: Path, table: str, rows: int) -> None:
-    marker = _marker_path(staging, table)
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text(
-        json.dumps({"rows": rows, "completed_at": datetime.now(UTC).isoformat()}, indent=2)
-    )
 
 
 def download_movielens() -> Path:
@@ -144,10 +124,11 @@ def convert_table(
 ) -> TableResult:
     """CSV/JSON -> partitioned Parquet for one table, with a done-marker checkpoint."""
     staging = sampling.staging_dir(sample)
-    cached_rows = _read_marker(staging, table)
-    if cached_rows is not None:
-        logger.info("SKIP %-13s (done marker, %s rows)", table, f"{cached_rows:,}")
-        return TableResult(table, cached_rows, skipped=True)
+    cached = checkpoints.read_marker(staging, table)
+    if cached is not None:
+        rows = int(cached["rows"])
+        logger.info("SKIP %-13s (done marker, %s rows)", table, f"{rows:,}")
+        return TableResult(table, rows, skipped=True)
 
     df = _read_table(spark, table, ml_dir, tmdb_export)
     fraction = sampling.sample_fraction(table, sample)
@@ -163,7 +144,7 @@ def convert_table(
     writer.parquet(str(out_path))
 
     rows = spark.read.parquet(str(out_path)).count()
-    _write_marker(staging, table, rows)
+    checkpoints.write_marker(staging, table, rows)
     logger.info("WROTE %-12s %s rows -> %s", table, f"{rows:,}", out_path)
     return TableResult(table, rows, skipped=False)
 
