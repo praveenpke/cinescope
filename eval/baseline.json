@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-16T10:00:40.187291+00:00",
+  "git_sha": "395755a214033faf0544aa400df0eeeda57ebf18",
+  "mode": "sample",
+  "sample_fraction": 0.01,
+  "holdout_fraction": 0.2,
+  "positive_threshold": 4.0,
+  "k_values": [
+    10,
+    25
+  ],
+  "hybrid_weights": {
+    "semantic": 0.45,
+    "behavioral": 0.4,
+    "quality": 0.15
+  },
+  "n_candidates": 675,
+  "n_users_evaluated": 23,
+  "rankers": {
+    "embeddings_only": {
+      "precision@10": 0.004347826086956522,
+      "precision@25": 0.006956521739130435,
+      "recall@10": 0.043478260869565216,
+      "recall@25": 0.17391304347826086
+    },
+    "cf_only": {
+      "precision@10": 0.013043478260869568,
+      "precision@25": 0.02260869565217391,
+      "recall@10": 0.13043478260869565,
+      "recall@25": 0.5652173913043478
+    },
+    "hybrid": {
+      "precision@10": 0.034782608695652174,
+      "precision@25": 0.02782608695652174,
+      "recall@10": 0.34782608695652173,
+      "recall@25": 0.6956521739130435
+    }
+  },
+  "baseline_note": "Committed eval-gate baseline (sample mode, 1% ratings sample). Gate metric: hybrid precision@10. Promoted from 395755a21403.json."
+}

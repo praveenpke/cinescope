@@ -11,6 +11,9 @@ dependencies = [
     "pyarrow>=25.0.0",
     "pyspark>=3.5,<4",
     "sentence-transformers>=5.6.0",
+    # direct dep (not just via sentence-transformers) so the pytorch-cpu index
+    # source below applies — uv sources only cover declared dependencies
+    "torch>=2.6",
 ]
 
 [dependency-groups]
@@ -21,6 +24,17 @@ dev = [
 
 [project.scripts]
 pipeline = "pipeline.cli:main"
+
+# CPU-only torch on Linux (CI): the default PyPI wheels drag in the full CUDA
+# toolkit (~5 GB) that sentence-transformers never needs there. Windows PyPI
+# wheels are already CPU-only, so local resolution is unaffected.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]

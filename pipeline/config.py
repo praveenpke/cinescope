@@ -56,6 +56,24 @@ EMBED_BATCH_SIZE: int = 64
 # Rows per parquet checkpoint shard; completed shards are skipped on re-run.
 EMBED_SHARD_SIZE: int = 512
 
+# --- Offline eval (pipeline eval / pipeline eval-gate) ---
+# Per-user timestamp split: each user's most recent fraction of ratings is
+# held out as the test set (at least 1 train rating is always kept).
+EVAL_HOLDOUT_FRACTION: float = 0.2
+EVAL_K_VALUES: tuple[int, ...] = (10, 25)
+# A held-out rating >= this counts as "relevant" for precision/recall.
+EVAL_POSITIVE_THRESHOLD: float = 4.0
+# Deterministic cap on evaluated users (keeps full-data eval tractable).
+EVAL_MAX_USERS: int = 5_000
+# Hybrid ranker weights (see pipeline/scoring.py — shared with the API).
+HYBRID_WEIGHTS: dict[str, float] = {"semantic": 0.45, "behavioral": 0.40, "quality": 0.15}
+EVAL_DIR: Path = REPO_ROOT / "eval"
+EVAL_RESULTS_DIR: Path = EVAL_DIR / "results"
+EVAL_BASELINE_PATH: Path = EVAL_DIR / "baseline.json"
+# Absolute slack when comparing hybrid precision@10 against the baseline
+# (guards against float round-tripping, not real regressions).
+EVAL_GATE_TOLERANCE: float = 1e-9
+
 # --- Index build (Postgres + pgvector) ---
 # Local docker-compose default (host port 5433) — override via DATABASE_URL in .env.
 DEFAULT_DATABASE_URL: str = "postgresql://cinescope:cinescope@localhost:5433/cinescope"
