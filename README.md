@@ -50,9 +50,10 @@ verified in minutes before full runs (which write to `data/staging/`).
 | `hydrate` | ✅ M2 | TMDB detail fetcher (plots/posters), rate-limited + resumable; offline MovieLens fallback without a key |
 | `embed` | ✅ M3 | sentence-transformers (all-MiniLM-L6-v2) over plot+genres+keywords → checkpointed parquet shards |
 | `index` | ✅ M3 | Join factors + embeddings + metadata → Postgres table with `vector(384)` + `vector(64)` columns, HNSW cosine indexes on both |
-| `eval` | M4 | precision@k / recall@k on held-out ratings, CI eval gate |
+| `eval` | ✅ M4 | Offline eval: per-user timestamp split (most recent 20% held out), precision/recall@{10,25} for embeddings-only / CF-only / hybrid rankers → `eval/results/<git-sha>.json` |
+| `eval-gate` | ✅ M4 | Fails (non-zero exit) if hybrid precision@10 in the newest results regresses vs `eval/baseline.json` — wired into CI |
 
-Jobs run in order: `ingest → cf → hydrate → embed → index` (each checks its
+Jobs run in order: `ingest → cf → hydrate → embed → index → eval` (each checks its
 upstream done-markers and tells you what to run first). `index --sample` loads
 the `movies_sample` Postgres table so a full `movies` load is never clobbered
 by a smoke test; the load is drop-and-recreate, so re-running is always safe.
@@ -60,6 +61,28 @@ by a smoke test; the load is drop-and-recreate, so re-running is always safe.
 Ingest chunking/resume: partial converts are skipped via done-markers under
 `data/staging*/_done/`; you can also restrict work with
 `uv run pipeline ingest --tables ratings genome_scores`.
+
+## Offline eval + the ranking gate
+
+No ranking change ships without offline scoring. The eval holds out each
+user's most recent 20% of ratings (timestamp split, no leakage — ALS factors
+and rating stats are retrained on the train split only) and scores three
+rankers over the embedded catalog. The hybrid ranker uses the *same*
+`pipeline/scoring.py` weighted combination the API serves.
+
+```bash
+source scripts/env.sh
+uv run pipeline eval --sample        # writes eval/results/<git-sha>.json
+uv run pipeline eval-gate            # non-zero exit on precision@10 regression
+uv run pipeline eval-gate --update-baseline   # promote good results, commit both
+```
+
+`make eval-gate` wraps the gate. CI (GitHub Actions) runs ruff, pytest, and
+the gate in **committed-results mode**: it compares the committed results JSON
+against the committed baseline — no Spark or data in CI, so a ranking PR that
+skipped the offline eval (or regressed) fails the build. The committed
+baseline is generated in `--sample` mode (1% ratings, small catalog) and is
+labeled as such inside the JSON; regenerate it after full runs.
 
 ## Layout
 
