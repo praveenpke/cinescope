@@ -1,0 +1,31 @@
+# Secrets — never commit
+.env
+
+# Data staging (raw downloads + parquet) — gigabytes, never commit
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+
+# Spark
+spark-warehouse/
+derby.log
+metastore_db/
+
+# Node / frontend
+node_modules/
+web/dist/
+
+# ML model caches
+.cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
