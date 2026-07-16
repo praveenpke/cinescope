@@ -36,6 +36,27 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="TABLE",
         help=f"Only convert these tables (resumable chunking). Choices: {', '.join(ALL_TABLES)}",
     )
+
+    cf = sub.add_parser(
+        "cf",
+        help="Train Spark MLlib ALS on ratings (per-movie latent factors) + behavioral stats.",
+    )
+    cf.add_argument(
+        "--sample",
+        action="store_true",
+        help="Use the 1%% sample staging area (data/staging_sample/).",
+    )
+
+    hydrate = sub.add_parser(
+        "hydrate",
+        help="Fetch TMDB details for MovieLens-linked + popular titles "
+        "(falls back to MovieLens-derived records without TMDB_API_KEY).",
+    )
+    hydrate.add_argument(
+        "--sample",
+        action="store_true",
+        help="Use the 1%% sample staging area (data/staging_sample/).",
+    )
     return parser
 
 
@@ -45,6 +66,14 @@ def main() -> None:
         from pipeline.jobs import ingest as ingest_job
 
         ingest_job.run(sample=args.sample, tables=args.tables)
+    elif args.job == "cf":
+        from pipeline.jobs import cf as cf_job
+
+        cf_job.run(sample=args.sample)
+    elif args.job == "hydrate":
+        from pipeline.jobs import hydrate as hydrate_job
+
+        hydrate_job.run(sample=args.sample)
 
 
 if __name__ == "__main__":

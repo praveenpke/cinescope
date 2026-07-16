@@ -5,6 +5,7 @@ description = "CineScope — semantic movie discovery engine (PySpark pipeline, 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "numpy>=1.26",
     "pyspark>=3.5,<4",
 ]
 

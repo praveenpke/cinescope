@@ -26,3 +26,25 @@ SAMPLE_SEED: int = 42
 
 MIN_RATINGS_FULL: int = 25_000_000
 MIN_TMDB_TITLES_FULL: int = 1_000_000
+
+# --- Collaborative filtering (Spark MLlib ALS) ---
+ALS_RANK: int = 64
+ALS_MAX_ITER: int = 10
+ALS_REG_PARAM: float = 0.08
+ALS_SEED: int = 42
+# Bayesian-weighted score prior: every movie starts with BAYES_PRIOR_WEIGHT
+# "virtual ratings" at the global mean (see pipeline/jobs/cf.py for the math).
+BAYES_PRIOR_WEIGHT: float = 50.0
+
+# --- TMDB detail hydration ---
+TMDB_API_BASE_URL: str = "https://api.themoviedb.org/3"
+TMDB_MAX_REQUESTS_PER_SECOND: float = 4.0
+TMDB_MAX_RETRIES: int = 5
+# genome tags kept per movie (by relevance) as fallback 'keywords';
+# tags below the relevance floor are never used (avoids noise tags when the
+# sampled genome matrix is sparse — genome relevance is 0..1, relevant ~>0.8)
+FALLBACK_TOP_TAGS: int = 15
+FALLBACK_MIN_RELEVANCE: float = 0.5
+# extra non-MovieLens titles from the daily export, by popularity (real mode)
+HYDRATE_POPULAR_EXPORT_LIMIT: int = 1_000
+HYDRATE_POPULAR_EXPORT_LIMIT_SAMPLE: int = 100
