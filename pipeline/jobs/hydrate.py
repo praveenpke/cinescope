@@ -111,12 +111,16 @@ def build_fallback(spark: SparkSession, staging: Path, targets: DataFrame) -> Da
 
     * title/release_year parsed from the MovieLens "Title (YYYY)" convention
     * genres from the pipe-separated movies.csv field
-    * keywords = top-N genome tags by relevance per movie (real tag data)
+    * keywords = top-N genome tags per movie, restricted to relevance >=
+      ``config.FALLBACK_MIN_RELEVANCE`` so noise tags never leak in (matters
+      in --sample mode, where the sampled genome matrix is sparse)
     """
     from pyspark.sql import Window
     from pyspark.sql import functions as F
 
-    scores = spark.read.parquet(str(staging / "genome_scores"))
+    scores = spark.read.parquet(str(staging / "genome_scores")).where(
+        F.col("relevance") >= config.FALLBACK_MIN_RELEVANCE
+    )
     tags = spark.read.parquet(str(staging / "genome_tags"))
     rank_window = Window.partitionBy("movieId").orderBy(F.col("relevance").desc())
     top_tags = (

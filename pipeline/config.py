@@ -40,8 +40,11 @@ BAYES_PRIOR_WEIGHT: float = 50.0
 TMDB_API_BASE_URL: str = "https://api.themoviedb.org/3"
 TMDB_MAX_REQUESTS_PER_SECOND: float = 4.0
 TMDB_MAX_RETRIES: int = 5
-# genome tags kept per movie (by relevance) as fallback 'keywords'
+# genome tags kept per movie (by relevance) as fallback 'keywords';
+# tags below the relevance floor are never used (avoids noise tags when the
+# sampled genome matrix is sparse — genome relevance is 0..1, relevant ~>0.8)
 FALLBACK_TOP_TAGS: int = 15
+FALLBACK_MIN_RELEVANCE: float = 0.5
 # extra non-MovieLens titles from the daily export, by popularity (real mode)
 HYDRATE_POPULAR_EXPORT_LIMIT: int = 1_000
 HYDRATE_POPULAR_EXPORT_LIMIT_SAMPLE: int = 100
