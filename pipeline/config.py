@@ -74,6 +74,20 @@ EVAL_BASELINE_PATH: Path = EVAL_DIR / "baseline.json"
 # (guards against float round-tripping, not real regressions).
 EVAL_GATE_TOLERANCE: float = 1e-9
 
+# --- Serving (FastAPI, see api/) ---
+# Claude model for natural-language query parsing (cheap Haiku tier — it is a
+# small extraction task). Requires ANTHROPIC_API_KEY; without it the API uses
+# the deterministic heuristic parser behind the same interface.
+CLAUDE_PARSE_MODEL: str = "claude-haiku-4-5"
+CLAUDE_PARSE_MAX_TOKENS: int = 1024
+# Candidate pool fetched from pgvector before hybrid re-ranking. Bigger pool =
+# better behavioral/quality re-ranking at the cost of one wider ANN scan.
+DISCOVER_CANDIDATE_POOL: int = 200
+DISCOVER_DEFAULT_LIMIT: int = 20
+DISCOVER_MAX_LIMIT: int = 100
+MORE_LIKE_THIS_LIMIT: int = 10
+TMDB_POSTER_BASE_URL: str = "https://image.tmdb.org/t/p/w342"
+
 # --- Index build (Postgres + pgvector) ---
 # Local docker-compose default (host port 5433) — override via DATABASE_URL in .env.
 DEFAULT_DATABASE_URL: str = "postgresql://cinescope:cinescope@localhost:5433/cinescope"

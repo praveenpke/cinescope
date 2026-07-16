@@ -84,11 +84,61 @@ skipped the offline eval (or regressed) fails the build. The committed
 baseline is generated in `--sample` mode (1% ratings, small catalog) and is
 labeled as such inside the JSON; regenerate it after full runs.
 
+## Serving API (FastAPI)
+
+After `index --sample` (or a full `index`) has populated Postgres:
+
+```bash
+uv run uvicorn api.main:app --reload
+```
+
+The app auto-selects the serving table (`movies` if a full index exists, else
+`movies_sample`; override with `CINESCOPE_TABLE` in `.env`).
+
+### `POST /api/discover` — natural-language discovery
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/discover \
+  -H "Content-Type: application/json" \
+  -d '{"query": "like Jaws but funnier", "limit": 5}'
+```
+
+1. **Parse** — Claude Haiku (`claude-haiku-4-5`, official `anthropic` SDK with
+   structured outputs) turns the query into a validated spec:
+   `{reference_titles, mood_adjustments, genres_include/exclude, year_range,
+   min_rating, similarity_text}`. Without `ANTHROPIC_API_KEY` a deterministic
+   heuristic parser (regex years/decades, genre keyword map with negation,
+   "like &lt;title&gt;" extraction) serves the same interface — responses are
+   labeled `"parser": "heuristic_fallback"`. Sending a pre-parsed `"spec"` in
+   the body skips parsing entirely (this powers editable filter chips: chips
+   re-query without re-parsing).
+2. **Retrieve** — the spec's `similarity_text` is embedded with the *same*
+   composer + model the index used, then one filtered pgvector HNSW scan
+   (cosine) pulls a candidate pool; spec filters are fully parameterized SQL.
+3. **Rank** — candidates are re-ranked by `pipeline/scoring.combine_hybrid`
+   under `config.HYBRID_WEIGHTS` (semantic 0.45 / behavioral 0.40 / quality
+   0.15) — the exact function and weights the offline eval gate scores. The
+   behavioral signal is the mean ALS-factor cosine to the resolved
+   `reference_titles` ("people who liked X").
+
+Every result carries a `why` object: `semantic_similarity`,
+`behavioral_boost` + `liked_by_fans_of`, `quality_score`, and
+`matched_filters` (each entry is literally true for that movie — included
+genres are conjunctive). The parsed `spec` and `parser` name are echoed in
+the response for the UI.
+
+### `GET /api/movies/{id}` — detail + more-like-this
+
+Returns the movie plus **two labeled** neighbor lists: semantic (embedding
+HNSW) and behavioral (ALS-factor HNSW). `GET /api/health` reports the table,
+title count, and active parser. CORS is open to the Vite dev server
+(`http://localhost:5173`).
+
 ## Layout
 
 ```
 pipeline/        PySpark jobs + CLI (uv run pipeline <job>)
-api/             FastAPI app (M5)
+api/             FastAPI serving layer (discover + movie detail)
 web/             React frontend (M6)
 scripts/env.sh   JVM/Hadoop/venv env for Spark on Windows
 docker-compose.yml  pgvector/pgvector:pg16 on host port 5433
