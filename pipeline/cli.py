@@ -57,6 +57,28 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use the 1%% sample staging area (data/staging_sample/).",
     )
+
+    embed = sub.add_parser(
+        "embed",
+        help="Encode hydrated titles (plot+genres+keywords) with sentence-transformers "
+        "into checkpointed parquet shards.",
+    )
+    embed.add_argument(
+        "--sample",
+        action="store_true",
+        help="Use the 1%% sample staging area (data/staging_sample/).",
+    )
+
+    index = sub.add_parser(
+        "index",
+        help="Join CF factors + embeddings + metadata and publish to Postgres/pgvector "
+        "(movies table, HNSW indexes on both vector columns).",
+    )
+    index.add_argument(
+        "--sample",
+        action="store_true",
+        help="Read the 1%% sample staging area and load the movies_sample table.",
+    )
     return parser
 
 
@@ -74,6 +96,14 @@ def main() -> None:
         from pipeline.jobs import hydrate as hydrate_job
 
         hydrate_job.run(sample=args.sample)
+    elif args.job == "embed":
+        from pipeline.jobs import embed as embed_job
+
+        embed_job.run(sample=args.sample)
+    elif args.job == "index":
+        from pipeline.jobs import index as index_job
+
+        index_job.run(sample=args.sample)
 
 
 if __name__ == "__main__":

@@ -48,3 +48,17 @@ FALLBACK_MIN_RELEVANCE: float = 0.5
 # extra non-MovieLens titles from the daily export, by popularity (real mode)
 HYDRATE_POPULAR_EXPORT_LIMIT: int = 1_000
 HYDRATE_POPULAR_EXPORT_LIMIT_SAMPLE: int = 100
+
+# --- Embeddings (sentence-transformers, local CPU is fine) ---
+EMBED_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
+EMBED_DIM: int = 384
+EMBED_BATCH_SIZE: int = 64
+# Rows per parquet checkpoint shard; completed shards are skipped on re-run.
+EMBED_SHARD_SIZE: int = 512
+
+# --- Index build (Postgres + pgvector) ---
+# Local docker-compose default (host port 5433) — override via DATABASE_URL in .env.
+DEFAULT_DATABASE_URL: str = "postgresql://cinescope:cinescope@localhost:5433/cinescope"
+INDEX_TABLE: str = "movies"
+INDEX_TABLE_SAMPLE: str = "movies_sample"
+PG_INSERT_BATCH_SIZE: int = 500
