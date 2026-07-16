@@ -80,8 +80,19 @@ ranking regression can never merge.
 A fresh clone to a working discovery UI in a handful of copy-paste commands.
 Every command below was run to produce this README.
 
-**Prereqs:** [uv](https://docs.astral.sh/uv/), Docker, JDK 17, Node 18+
-(and on Windows: Hadoop `winutils.exe` — paths are wired in `scripts/env.sh`).
+**Prereqs:** [uv](https://docs.astral.sh/uv/), Docker, JDK 17, Node 18+.
+
+> **`scripts/env.sh` is cross-platform.** It detects your OS and exports only
+> what that OS needs for Spark:
+> - **Windows** — uses this author's local JDK 17 + Hadoop `winutils.exe` paths
+>   (override with `CINESCOPE_JAVA_HOME` / `CINESCOPE_HADOOP_HOME` if yours differ).
+> - **macOS** — derives `JAVA_HOME` from `/usr/libexec/java_home -v 17` (or set
+>   your own). No winutils needed.
+> - **Linux** — respects your existing `JAVA_HOME` (e.g.
+>   `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk`). No winutils needed.
+>
+> The script never overwrites a `JAVA_HOME` you already exported, and the API /
+> frontend do **not** need Spark env at all — only the `pipeline` jobs do.
 
 ```bash
 # 0. Clone
