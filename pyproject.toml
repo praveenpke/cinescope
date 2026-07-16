@@ -6,7 +6,11 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",
+    "pgvector>=0.5.0",
+    "psycopg[binary]>=3.3.4",
+    "pyarrow>=25.0.0",
     "pyspark>=3.5,<4",
+    "sentence-transformers>=5.6.0",
 ]
 
 [dependency-groups]

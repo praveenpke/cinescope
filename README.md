@@ -46,11 +46,16 @@ verified in minutes before full runs (which write to `data/staging/`).
 | Job | Status | What it does |
 | --- | --- | --- |
 | `ingest` | ✅ M1 | MovieLens 25M CSVs + TMDB daily export → partitioned Parquet, row-count assertions |
-| `train-als` | M2 | Spark MLlib ALS → per-movie latent factors + behavioral stats |
-| `hydrate` | M2 | TMDB detail fetcher (plots/posters), rate-limited + resumable |
-| `embed` | M3 | sentence-transformers over plot+genres+keywords |
-| `build-index` | M3 | Join factors + embeddings + metadata → Postgres/pgvector (HNSW) |
+| `cf` | ✅ M2 | Spark MLlib ALS → per-movie latent factors + behavioral stats (Bayesian-weighted score) |
+| `hydrate` | ✅ M2 | TMDB detail fetcher (plots/posters), rate-limited + resumable; offline MovieLens fallback without a key |
+| `embed` | ✅ M3 | sentence-transformers (all-MiniLM-L6-v2) over plot+genres+keywords → checkpointed parquet shards |
+| `index` | ✅ M3 | Join factors + embeddings + metadata → Postgres table with `vector(384)` + `vector(64)` columns, HNSW cosine indexes on both |
 | `eval` | M4 | precision@k / recall@k on held-out ratings, CI eval gate |
+
+Jobs run in order: `ingest → cf → hydrate → embed → index` (each checks its
+upstream done-markers and tells you what to run first). `index --sample` loads
+the `movies_sample` Postgres table so a full `movies` load is never clobbered
+by a smoke test; the load is drop-and-recreate, so re-running is always safe.
 
 Ingest chunking/resume: partial converts are skipped via done-markers under
 `data/staging*/_done/`; you can also restrict work with
