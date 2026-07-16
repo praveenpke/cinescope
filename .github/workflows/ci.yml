@@ -17,6 +17,13 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege: this job only checks out, lints, tests, and runs a JSON eval
+# gate — it never writes to the repo. Pin the auto-provided GITHUB_TOKEN to
+# read-only regardless of the repository/org default (which may be legacy
+# read/write), closing the write surface for untrusted fork PRs.
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest
