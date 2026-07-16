@@ -79,6 +79,28 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Read the 1%% sample staging area and load the movies_sample table.",
     )
+
+    evaluate = sub.add_parser(
+        "eval",
+        help="Offline eval: per-user timestamp split, precision/recall@k for "
+        "embeddings-only, CF-only, and hybrid rankers -> eval/results/<git-sha>.json.",
+    )
+    evaluate.add_argument(
+        "--sample",
+        action="store_true",
+        help="Use the 1%% sample staging area (data/staging_sample/).",
+    )
+
+    gate = sub.add_parser(
+        "eval-gate",
+        help="Exit non-zero if hybrid precision@10 in the newest eval/results/*.json "
+        "regresses vs eval/baseline.json (JSON-only — safe for CI).",
+    )
+    gate.add_argument(
+        "--update-baseline",
+        action="store_true",
+        help="Promote the newest results file to eval/baseline.json before comparing.",
+    )
     return parser
 
 
@@ -104,6 +126,16 @@ def main() -> None:
         from pipeline.jobs import index as index_job
 
         index_job.run(sample=args.sample)
+    elif args.job == "eval":
+        from pipeline.jobs import evaluate as evaluate_job
+
+        evaluate_job.run(sample=args.sample)
+    elif args.job == "eval-gate":
+        import sys
+
+        from pipeline.jobs import eval_gate as eval_gate_job
+
+        sys.exit(eval_gate_job.run(promote=args.update_baseline))
 
 
 if __name__ == "__main__":

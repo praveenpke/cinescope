@@ -1,0 +1,46 @@
+# CI: lint + tests + the offline-eval gate.
+#
+# The eval gate runs in *committed-results mode*: it only compares the newest
+# committed eval/results/<git-sha>.json against eval/baseline.json (pure JSON,
+# no Spark, no data downloads in CI). The eval itself runs locally:
+#
+#   source scripts/env.sh
+#   uv run pipeline eval --sample     # or a full `uv run pipeline eval`
+#   uv run pipeline eval-gate         # same check CI performs
+#
+# and the results JSON is committed with the ranking change. A ranking PR that
+# skips the offline eval (or ships a regression) therefore fails CI.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (locked)
+        run: uv sync --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Pytest
+        # Includes real-Spark split tests: the ubuntu runner ships Java with
+        # JAVA_HOME set, so the timestamp-split suite runs here too.
+        run: uv run pytest
+
+      - name: Eval gate (committed-results mode)
+        run: uv run pipeline eval-gate
