@@ -134,12 +134,55 @@ HNSW) and behavioral (ALS-factor HNSW). `GET /api/health` reports the table,
 title count, and active parser. CORS is open to the Vite dev server
 (`http://localhost:5173`).
 
+## Frontend (React + Vite + TanStack Query)
+
+A polished dark UI for natural-language discovery, in `web/`.
+
+```bash
+# In one terminal: the API (Postgres must be up + indexed)
+uv run uvicorn api.main:app --reload
+
+# In another: the frontend dev server (Vite proxies /api → :8000)
+cd web
+npm install
+npm run dev            # http://localhost:5173
+npm run build          # typecheck (tsc -b) + production bundle
+```
+
+The dev server proxies `/api/*` to the FastAPI backend (`vite.config.ts`;
+override the target with `VITE_API_TARGET`), so there's no CORS friction and no
+hardcoded API host. What it does:
+
+- **Single natural-language search box** ("like Inception but funnier") →
+  `POST /api/discover`.
+- **Editable interpretation chips** — the parsed spec (reference titles, moods,
+  genres include/exclude, year range, min rating) renders as chips. Removing a
+  chip re-queries by POSTing the *modified spec* back in the `spec` field, so
+  the backend **skips re-parsing** (`parser: "provided_spec"`). A subtle badge
+  flags when the parse came from the heuristic fallback (no `ANTHROPIC_API_KEY`).
+- **Results grid** — poster from the TMDB image CDN when `poster_path` exists,
+  otherwise a styled deterministic gradient tile with title/year (fallback data
+  has no posters — it still looks intentional). Each card shows the compact
+  "why this matched" signals (semantic %, fans-of, quality ★, filters).
+- **Detail drawer** — `GET /api/movies/{id}` with two labeled more-like-this
+  rows: *Similar story & vibe* (embedding neighbors) and *Fans also loved*
+  (ALS collaborative-filtering neighbors).
+- Sensible loading (skeletons), empty, and error states throughout.
+
+Screenshots live in [`docs/screenshots/`](docs/screenshots) and are
+reproducible with `npm run screenshots` (Playwright, requires both servers
+running).
+
+![Landing](docs/screenshots/01-landing.png)
+![Results](docs/screenshots/02-results.png)
+![Detail drawer](docs/screenshots/03-detail.png)
+
 ## Layout
 
 ```
 pipeline/        PySpark jobs + CLI (uv run pipeline <job>)
 api/             FastAPI serving layer (discover + movie detail)
-web/             React frontend (M6)
+web/             React frontend (Vite + TanStack Query)
 scripts/env.sh   JVM/Hadoop/venv env for Spark on Windows
 docker-compose.yml  pgvector/pgvector:pg16 on host port 5433
 data/            raw downloads + parquet staging (gitignored)
